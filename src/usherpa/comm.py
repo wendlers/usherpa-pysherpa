@@ -1,5 +1,10 @@
 
+import time
+
 from array import array
+from threading import Thread, RLock
+
+from usherpa.util import synchronized
 
 class PacketException(Exception):
 
@@ -9,6 +14,13 @@ class PacketException(Exception):
 	def __str__(self):
 		return repr(self.value)
 
+class PacketStreamException(Exception):
+
+	def __init__(self, value):
+		self.value = value
+
+	def __str__(self):
+		return repr(self.value)
 
 class Packet:
 
@@ -196,3 +208,84 @@ class Packet:
 		s = s + "}"
 
 		return s
+
+class PacketReaderThread(Thread):
+
+	stream 	= None
+
+	packet  = None
+
+	running = False
+
+	def __init__(self, stream):
+		Thread.__init__(self)
+		self.stream = stream
+
+	def run(self):
+		
+		self.running = True
+
+		p = Packet()
+
+		while self.running:
+			print "reader thread"
+			p.addByte(self.stream.read())
+
+			if p.isComplete():
+				self.packet = Packet()
+				self.packet.fromByteArray(p.toByteArray()) 
+				p.clear()
+
+		time.sleep(0.5)
+
+	def read(self):
+
+		while self.packet == None or not self.packet.isComplete():	
+			pass
+
+		p = Packet()
+		p.fromByteArray(self.packet.toByteArray())
+
+		self.packet = None
+		
+		return p
+
+	def end(self):
+		self.running = False
+
+class PacketStream:
+
+	stream 		= None
+
+	sendLock    = None
+
+	reader 		= None
+
+	def __init__(self, stream):
+		self.stream   = stream
+		self.sendLock = RLock()
+		self.reader   = PacketReaderThread(stream)
+		self.reader.start()
+
+	def __del__(self):
+		self.reader.end()
+		self.reader.join()
+		
+#	@synchronized("sendLock")
+	def send(self, pkt):
+		if self.stream == None:
+			raise PacketStreamException("No stream found!") 
+
+		for b in pkt.toByteArray():
+			self.stream.write(b)
+
+	def receive(self):
+		if not self.reader == None and self.reader.isAlive():
+			return self.reader.read()
+		
+		raise PacketStreamException("No active reader-thread found!") 
+	
+	def xfer(self, pkt):
+		self.send(pkt)
+		return self.receive()
+
