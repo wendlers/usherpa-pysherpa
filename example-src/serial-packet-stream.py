@@ -36,7 +36,6 @@ try:
 			ps.xfer(plo)
 			time.sleep(T);
 		except KeyboardInterrupt:
-			pass	
 			break
 		except: 
 			print traceback.format_exc()
