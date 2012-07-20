@@ -1,13 +1,16 @@
 #!/bin/python
 
 import time
+import traceback
 
 from array import array
-from usherpa.comm import Packet, PacketStream, PacketException
+from usherpa.comm import Packet, PacketStream, PacketException, PacketStreamException
 
 print "Packet-Stream Test"
 
 class DummyStream:
+
+	slow	= False
 
 	idx 	= 0
 
@@ -17,14 +20,17 @@ class DummyStream:
 		print "> " + hex(b)
 
 	def read(self):
+
+		if self.slow:
+			print "slow-read!"
+			time.sleep(5)
+
 		b = self.data[self.idx]	
 
 		self.idx = self.idx + 1
 
 		if self.idx >= len(self.data): 
 			self.idx = 0
-
-		print "< " + hex(b)
 
 		return b	
 
@@ -33,6 +39,7 @@ s = DummyStream()
 ps = PacketStream(s)
 
 try:
+	ps.start()
 
 	p = Packet()
 	p.fromByteArray(array('B', [0x24, 0x07, 0x06, 0x22, 0x20, 0x4e, 0xc1]))
@@ -43,9 +50,21 @@ try:
 
 	print "r: " + r.__str__()
 
-except Exception as e:
+	r = ps.xfer(p)
+
+	print "r: " + r.__str__()
+
+	s.slow = True
+
+	r = ps.xfer(p)
+
+	print "r: " + r.__str__()
+
+except PacketException as e:
 	print e
-
-# time.sleep(5)
-
-del ps
+except PacketStreamException as e:
+	print e
+except Exception as e:
+	print traceback.format_exc()
+finally:
+	ps.close()

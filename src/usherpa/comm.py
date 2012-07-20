@@ -209,39 +209,58 @@ class Packet:
 
 		return s
 
-class PacketReaderThread(Thread):
+class PacketStream(Thread):
 
-	stream 	= None
+	stream 		= None
 
-	packet  = None
+	sendLock    = None
 
-	running = False
+	packet  	= None
+
+	running 	= False
 
 	def __init__(self, stream):
+		self.stream   = stream
+		self.sendLock = RLock()
 		Thread.__init__(self)
-		self.stream = stream
 
-	def run(self):
-		
-		self.running = True
+	def __del__(self):
+		self.stop()
+	
+	def start(self):
+		Thread.start(self)
+		while not self.running:
+			print "wait for thread to startup"
+			time.sleep(0.1)
+			
+	def stop(self):
+		self.interrupt()
+		self.join()
+		self.stream.close()
 
-		p = Packet()
+#	@synchronized("sendLock")
+	def send(self, pkt):
+		if self.stream == None:
+			raise PacketStreamException("No stream found!") 
 
-		while self.running:
-			print "reader thread"
-			p.addByte(self.stream.read())
+#		for b in pkt.toByteArray():
+#			self.stream.write(b)
+		self.stream.write(pkt.toByteArray())
 
-			if p.isComplete():
-				self.packet = Packet()
-				self.packet.fromByteArray(p.toByteArray()) 
-				p.clear()
+	def receive(self):
+		if not self.running:
+			raise PacketStreamException("Reader thread must be started") 
 
-		time.sleep(0.5)
-
-	def read(self):
+		tout = 10 
 
 		while self.packet == None or not self.packet.isComplete():	
-			pass
+
+			tout = tout - 1
+
+			if tout == 0:
+				raise PacketStreamException("Read timeout")
+
+			time.sleep(0.25)
 
 		p = Packet()
 		p.fromByteArray(self.packet.toByteArray())
@@ -250,42 +269,33 @@ class PacketReaderThread(Thread):
 		
 		return p
 
-	def end(self):
-		self.running = False
-
-class PacketStream:
-
-	stream 		= None
-
-	sendLock    = None
-
-	reader 		= None
-
-	def __init__(self, stream):
-		self.stream   = stream
-		self.sendLock = RLock()
-		self.reader   = PacketReaderThread(stream)
-		self.reader.start()
-
-	def __del__(self):
-		self.reader.end()
-		self.reader.join()
-		
-#	@synchronized("sendLock")
-	def send(self, pkt):
-		if self.stream == None:
-			raise PacketStreamException("No stream found!") 
-
-		for b in pkt.toByteArray():
-			self.stream.write(b)
-
-	def receive(self):
-		if not self.reader == None and self.reader.isAlive():
-			return self.reader.read()
-		
-		raise PacketStreamException("No active reader-thread found!") 
-	
 	def xfer(self, pkt):
 		self.send(pkt)
 		return self.receive()
 
+	def run(self):
+
+		p = Packet()
+
+		self.running = True
+
+		while self.running:
+
+			s = self.stream.read()
+
+			if len(s) != 1:
+				continue
+
+			b = array('B', [ ord(s) ])
+			
+#			print hex(b[0])
+
+			p.addByte(b[0])
+
+			if p.isComplete():
+				self.packet = Packet()
+				self.packet.fromByteArray(p.toByteArray()) 
+				p.clear()
+
+	def interrupt(self):
+		self.running = False
