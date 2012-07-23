@@ -4,11 +4,14 @@ import traceback
 from usherpa.api import *
 from usherpa.serialcomm import *
 
+# Searial Packet stream instance
+ps = None
+
 try:
 
-	print "uSherpaBasics"
+	print "uSherpaPulselenghtRed"
 
-	ps = SerialPacketStream("/dev/ttyS0")
+	ps = SerialPacketStream("/dev/ttyUSB0")
 	ps.start()
 
 	us = uSherpa(ps)
@@ -21,7 +24,7 @@ try:
 	# retrive system info an print it 
 	print "Sending SYSTEMINFO: "  
    	inf = us.systemInfo()
-	print "-> OK: ", inf
+	print "-> OK: ", hex(inf["board_type"]), hex(inf["mcu_type"]), hex(inf["firmware_rev"])
 
 	# configure pin 1.0 (internal LED on Launchpad) for output
  	print "Set P1.0 to OUTPUT: "  
@@ -33,11 +36,24 @@ try:
 	us.digitalWrite(uSherpa.PIN_1_0, uSherpa.HIGH)
 	print "-> OK"
 
-	time.sleep(0.5);
+	time.sleep(0.25);
+
+	# toggel LED 10 times
+	for i in range(0, 10):
+	  	print "TOGGLE P1.0: "  
+		us.digitalWrite(uSherpa.PIN_1_0, uSherpa.TOGGLE)
+		print "-> OK"
+
+		time.sleep(0.25);
+
+	# reset MCU 
+  	print "RESET: "  
+	us.reset()
+	print "-> OK"
 
 except Exception as e:
 	print traceback.format_exc()
 
 finally:
-	ps.stop()	
-	pass
+	if not ps == None:
+		ps.stop()	

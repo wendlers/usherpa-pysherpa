@@ -104,7 +104,7 @@ class Packet:
 			self.crc    = self.crc + b;
 
 			if self.length - 4 > self.PACKET_MAX_DATA:
-				raise PacketException("Packet to big: was " + `length` + ", allowd " + `self.PACKET_MAX_DATA + 4`)
+				raise PacketException("Packet to big: was " + `self.length` + ", allowd " + `self.PACKET_MAX_DATA + 4`)
 
 			if self.length - 4 > 0:
 				self.data = array('B')
@@ -134,8 +134,11 @@ class Packet:
 
 			self.currFill = self.currFill + 1
 
+			b = b & 0xFF
+			self.crc = self.crc & 0xFF
+
 			if b != self.crc:
-				raise PacketException("CRC error: expected " + `crc` + " and got " + `b`)
+				raise PacketException("CRC error: expected " + hex(self.crc) + " and got " + hex(b))
 
 		else:
 			raise PacketException("Packet already complete")
@@ -179,13 +182,13 @@ class Packet:
 		newCrc = 0
 
 		for b in pkt:
-			newCrc = 0xFF & (newCrc + b)
+			newCrc = newCrc + b
  
-		return (newCrc - pkt[len(pkt) - 1])
+		return 0xFF & (newCrc - pkt[len(pkt) - 1])
 
 	def checkCrc(self):
 
-		return (self.crc == self.calcCrc())
+		return (self.crc & 0xFF == self.calcCrc())
 	
 	def isComplete(self):
 	
@@ -251,7 +254,7 @@ class PacketStream(Thread):
 		if not self.running:
 			raise PacketStreamException("Reader thread must be started") 
 
-		tout = 10 
+		tout = 250 
 
 		while self.packet == None or not self.packet.isComplete():	
 
@@ -260,7 +263,7 @@ class PacketStream(Thread):
 			if tout == 0:
 				raise PacketStreamException("Read timeout")
 
-			time.sleep(0.25)
+			time.sleep(0.02)
 
 		p = Packet()
 		p.fromByteArray(self.packet.toByteArray())
