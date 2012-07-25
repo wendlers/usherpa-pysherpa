@@ -1,12 +1,36 @@
+##
+# This file is part of the uSherpa Python Library project
+#
+# Copyright (C) 2012 Stefan Wendler <sw@kaltpost.de>
+#
+# The uSherpa Python  Library is free software; you can redistribute 
+# it and/or modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+#  version 2.1 of the License, or (at your option) any later version.
+#
+#  uSherpa Python Library is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  Lesser General Public License for more details.
+# 
+#  You should have received a copy of the GNU Lesser General Public
+#  License along with the JSherpa firmware; if not, write to the Free
+#  Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+#  02111-1307 USA.  
+##
 
-import time
+'''
+This file is part of the uSherpa Python Library project
+'''
 
 from array import array
-from threading import Thread, RLock
-
-from usherpa.util import synchronized
+from threading import Thread, Lock, Condition
 
 class PacketException(Exception):
+	'''
+	Exception thrown whenever someting went wrong with package
+	parsing or package assembling.
+	'''
 
 	def __init__(self, value):
 		self.value = value
@@ -104,7 +128,8 @@ class Packet:
 			self.crc    = self.crc + b;
 
 			if self.length - 4 > self.PACKET_MAX_DATA:
-				raise PacketException("Packet to big: was " + `self.length` + ", allowd " + `self.PACKET_MAX_DATA + 4`)
+				raise PacketException("Packet to big: was " + 
+					`self.length` + ", allowd " + `self.PACKET_MAX_DATA + 4`)
 
 			if self.length - 4 > 0:
 				self.data = array('B')
@@ -216,15 +241,22 @@ class PacketStream(Thread):
 
 	stream 		= None
 
-	sendLock    = None
+	xferLock    = None
+
+	packetAvial = None
 
 	packet  	= None
 
 	running 	= False
 
+	evHandler   = None
+
 	def __init__(self, stream):
-		self.stream   = stream
-		self.sendLock = RLock()
+
+		self.stream   		= stream
+		self.xferLock 		= Lock()
+		self.packetAvail 	= Condition()
+
 		Thread.__init__(self)
 
 	def __del__(self):
@@ -241,40 +273,54 @@ class PacketStream(Thread):
 		self.join()
 		self.stream.close()
 
-#	@synchronized("sendLock")
 	def send(self, pkt):
+
 		if self.stream == None:
 			raise PacketStreamException("No stream found!") 
 
-#		for b in pkt.toByteArray():
-#			self.stream.write(b)
 		self.stream.write(pkt.toByteArray())
 
 	def receive(self):
+
 		if not self.running:
 			raise PacketStreamException("Reader thread must be started") 
 
-		tout = 250 
+		self.packetAvail.aquire()
 
-		while self.packet == None or not self.packet.isComplete():	
+		# wait until response packet is available
+		if self.packet == None or not self.packet.isComplete():	
+			self.packetAvail.wait(1)
 
-			tout = tout - 1
-
-			if tout == 0:
-				raise PacketStreamException("Read timeout")
-
-			time.sleep(0.02)
-
+		# if packet is still not available, raise timeout exception
+		if self.packet == None or not self.packet.isComplete():	
+			self.packetAvail.release()
+			raise PacketStreamException("Read timeout")
+	
+		# copy the newly received packet
 		p = Packet()
 		p.fromByteArray(self.packet.toByteArray())
 
 		self.packet = None
 		
+		self.packetAvail.release()
+
 		return p
 
 	def xfer(self, pkt):
-		self.send(pkt)
-		return self.receive()
+
+		res = None
+
+		self.xferLock.aquire()
+		
+		try:
+			self.send(pkt)
+			res = self.receive()
+		except Exception as e:
+			raise PacketStreamException(e.__str__())
+		finally:
+			self.sendLock.release()
+		
+		return res
 
 	def run(self):
 
@@ -291,14 +337,22 @@ class PacketStream(Thread):
 
 			b = array('B', [ ord(s) ])
 			
-#			print hex(b[0])
-
 			p.addByte(b[0])
 
 			if p.isComplete():
-				self.packet = Packet()
-				self.packet.fromByteArray(p.toByteArray()) 
-				p.clear()
+				if not evHandler == None and p.start == Packet.PACKET_START_INBEV:
+					# event handler registered, and event received
+					ep = Packet()
+					ep.fromByteArray(p.toByteArray()) 
+					p.clear()
+					thread.start_new_thread(evHandler, (ep))
+				else:
+					self.packetAvial.aquire()
+					self.packet = Packet()
+					self.packet.fromByteArray(p.toByteArray()) 
+					p.clear()
+					self.packetAvail.notify()
+					self.packetAvial.release()
 
 	def interrupt(self):
 		self.running = False

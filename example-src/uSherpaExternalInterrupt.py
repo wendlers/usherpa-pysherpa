@@ -21,6 +21,14 @@
 
 '''
 This file is part of the uSherpa Python Library project
+
+The following example shows:
+
+- how to connect to the MCU through serial line, 
+- configure pins as digital input, 
+- enable external interrupts for this input,
+- and provide an event handler which is called
+  whenever a state change is detecetd on the input pin
 '''
 
 import traceback
@@ -31,12 +39,19 @@ from usherpa.serialcomm import *
 # Searial Packet stream instance
 ps = None
 
+def exti(packet):
+	''' Callback handler for external interrupts received from uSherpa ''' 
+ 
+	print "Received external interrupt: ", packet
 
 try:
 
-	print "uSherpaPwmRead"
+	print "uSherpaExternal Interrupt"
 
 	ps = SerialPacketStream("/dev/ttyUSB0")
+	
+	# register callback handler for external interrupts
+	ps.evHandler = exti
 	ps.start()
 
 	us = uSherpa(ps)
@@ -46,12 +61,33 @@ try:
 	us.pinMode(uSherpa.PIN_1_3, uSherpa.INPUT)
 	print "-> OK"
 
-	# read pin 1.3 until state changed form high to low
- 	print "Read P1.3 DIGITAL (wait for button press)"
+	# configure pin 2.3 for input with PULLDOWN 
+ 	print "Set P2.3 to INPUT-PULLDOWN: "  
+	us.pinMode(uSherpa.PIN_2_3, uSherpa.PULLDOWN)
+	print "-> OK"
 
-	pl = us.pulselengthRead(uSherpa.PIN_1_3); 
+	# configure pin 2.4 for input with PULLUP 
+ 	print "Set P2.4 to INPUT-PULLUP: "  
+	us.pinMode(uSherpa.PIN_2_4, uSherpa.PULLUP)
+	print "-> OK"
 
-	print "Pulselenght was: " + `pl`
+	# for pin 1.3 enable external interrupt for high-to-low transitions
+ 	print "Enable EXTI on HIGH-LOW transition for P1.3: "
+	us.externalInterrupt(uSherpa.PIN_1_3, uSherpa.EDGE_HIGHLOW);
+	print "-> OK"
+
+	# for pin 2.3 enable external interrupt for low-to-high transitions
+ 	print "Enable EXTI on HIGH-LOW transition for P2.3: "
+	us.externalInterrupt(uSherpa.PIN_2_3, uSherpa.EDGE_LOWHIGH);
+	print "-> OK"
+
+	# for pin 2.4 enable external interrupt for high-to-low transitions
+ 	print "Enable EXTI on HIGH-LOW transition for P2.4: "
+	us.externalInterrupt(uSherpa.PIN_2_4, uSherpa.EDGE_HIGHLOW);
+	print "-> OK"
+	
+	print "Press ENTER to exit"
+	raw_input()
 
 	# reset MCU 
   	print "RESET: "  
