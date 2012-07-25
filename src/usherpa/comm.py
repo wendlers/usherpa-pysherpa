@@ -23,6 +23,8 @@
 This file is part of the uSherpa Python Library project
 '''
 
+import time
+
 from array import array
 from threading import Thread, Lock, Condition
 
@@ -252,7 +254,7 @@ class Packet:
 		try:
 			pkt = self.toByteArray()
 		except PacketException as e:
-			return e.value
+			return e.__str__()
  				
 		s = "{"
 
@@ -275,7 +277,7 @@ class PacketStream(Thread):
 
 	xferLock    = None
 
-	packetAvial = None
+	packetAvail = None
 
 	packet  	= None
 
@@ -321,7 +323,11 @@ class PacketStream(Thread):
 		if self.stream == None:
 			raise PacketStreamException("No stream found!") 
 
-		self.stream.write(pkt.toByteArray())
+		# TODO: send lock
+		for b in pkt.toByteArray():
+			self.stream.write(chr(b))
+
+		# self.stream.write(pkt.toByteArray())
 
 	def receive(self):
 		'''
@@ -332,7 +338,7 @@ class PacketStream(Thread):
 		if not self.running:
 			raise PacketStreamException("Reader thread must be started") 
 
-		self.packetAvail.aquire()
+		self.packetAvail.acquire()
 
 		# wait until response packet is available
 		if self.packet == None or not self.packet.isComplete():	
@@ -363,7 +369,7 @@ class PacketStream(Thread):
 
 		res = None
 
-		self.xferLock.aquire()
+		self.xferLock.acquire()
 		
 		try:
 			self.send(pkt)
@@ -371,7 +377,7 @@ class PacketStream(Thread):
 		except Exception as e:
 			raise PacketStreamException(e.__str__())
 		finally:
-			self.sendLock.release()
+			self.xferLock.release()
 		
 		return res
 
@@ -394,19 +400,19 @@ class PacketStream(Thread):
 			p.addByte(b[0])
 
 			if p.isComplete():
-				if not evHandler == None and p.start == Packet.PACKET_START_INBEV:
+				if not self.evHandler == None and p.start == Packet.PACKET_START_INBEV:
 					# event handler registered, and event received
 					ep = Packet()
 					ep.fromByteArray(p.toByteArray()) 
 					p.clear()
-					thread.start_new_thread(evHandler, (ep))
+					thread.start_new_thread(self.evHandler, (ep))
 				else:
-					self.packetAvial.aquire()
+					self.packetAvail.acquire()
 					self.packet = Packet()
 					self.packet.fromByteArray(p.toByteArray()) 
 					p.clear()
 					self.packetAvail.notify()
-					self.packetAvial.release()
+					self.packetAvail.release()
 
 	def interrupt(self):
 		''' 

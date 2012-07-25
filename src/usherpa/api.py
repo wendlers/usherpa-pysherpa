@@ -261,7 +261,7 @@ class uSherpa:
 			ret = self.packetStream.xfer(p)
 
 		except Exception as e:
-			raise uSherpaException(e.value)
+			raise uSherpaException(e.__str__())
 
 		if not ret.ptype == checkType:
 			raise uSherpaException("Wrong packet type. Expected " + 
