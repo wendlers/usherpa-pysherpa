@@ -275,6 +275,8 @@ class PacketStream(Thread):
 
 	stream 		= None
 
+	sendLock	= None
+
 	xferLock    = None
 
 	packetAvail = None
@@ -289,6 +291,7 @@ class PacketStream(Thread):
 		''' Constructor '''
 
 		self.stream   		= stream
+		self.sendLock 		= Lock()
 		self.xferLock 		= Lock()
 		self.packetAvail 	= Condition()
 
@@ -316,17 +319,28 @@ class PacketStream(Thread):
 
 	def send(self, pkt):
 		''' 
-		Send a packet blocking through the assigned stream. It is assumed,
-		that the write operation of the stream is thread save.
+		Send a packet blocking through the assigned stream.		
 		'''
 	
 		if self.stream == None:
 			raise PacketStreamException("No stream found!") 
 
-		# TODO: send lock
-		for b in pkt.toByteArray():
-			self.stream.write(chr(b))
+		self.sendLock.acquire()
+		# TODO: check if this is really needed
+		self.stream.flushOutput()
+		self.stream.flushInput()
 
+		try:
+
+			for b in pkt.toByteArray():
+				self.stream.write(chr(b))
+
+		except Exception as e:
+			raise PacketStreamException(e.__str__())
+		finally:
+			self.sendLock.relese()
+
+		# only works with pyserial >= 2.5
 		# self.stream.write(pkt.toByteArray())
 
 	def receive(self):
@@ -386,33 +400,50 @@ class PacketStream(Thread):
 	
 		p = Packet()
 
+		# byte array to convert received
+		ba = array('B', [ 0 ])
+
 		self.running = True
 
 		while self.running:
 
-			s = self.stream.read()
+			s = self.stream.read(Packet.PACKET_MAX_DATA + 4)
 
-			if len(s) != 1:
+			'''
+			nb = self.stream.inWaiting()
+
+			if nb > 1:
+				print "multible bytes waiting: " + `nb`
+				s = self.stream.read(nb)
+			else:
+				s = self.stream.read()
+			'''
+
+			# timed out (since nothing to read on stream)
+			if len(s) < 1:
 				continue
 
-			b = array('B', [ ord(s) ])
-			
-			p.addByte(b[0])
+			# pump all received to packet
+			for bs in s:
 
-			if p.isComplete():
-				if not self.evHandler == None and p.start == Packet.PACKET_START_INBEV:
-					# event handler registered, and event received
-					ep = Packet()
-					ep.fromByteArray(p.toByteArray()) 
-					p.clear()
-					thread.start_new_thread(self.evHandler, (ep))
-				else:
-					self.packetAvail.acquire()
-					self.packet = Packet()
-					self.packet.fromByteArray(p.toByteArray()) 
-					p.clear()
-					self.packetAvail.notify()
-					self.packetAvail.release()
+				ba[0] = ord(bs) 
+			
+				p.addByte(bs)
+
+				if p.isComplete():
+					if not self.evHandler == None and p.start == Packet.PACKET_START_INBEV:
+						# event handler registered, and event received
+						ep = Packet()
+						ep.fromByteArray(p.toByteArray()) 
+						p.clear()
+						thread.start_new_thread(self.evHandler, (ep))
+					else:
+						self.packetAvail.acquire()
+						self.packet = Packet()
+						self.packet.fromByteArray(p.toByteArray()) 
+						p.clear()
+						self.packetAvail.notify()
+						self.packetAvail.release()
 
 	def interrupt(self):
 		''' 

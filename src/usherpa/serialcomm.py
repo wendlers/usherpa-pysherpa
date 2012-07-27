@@ -33,10 +33,11 @@ class SerialPacketStream(PacketStream):
 	def __init__(self, port = "/dev/ttyACM0", speed = 9600):
 		''' Constructor '''
 
+		# serStream = serial.PosixPollSerial()
 		serStream = serial.Serial()
 		serStream.port 		= port
 		serStream.speed 	= speed
-		serStream.timeout 	= 1
+		serStream.timeout 	= 0.1
 		serStream.open()
 		PacketStream.__init__(self, serStream)
 
