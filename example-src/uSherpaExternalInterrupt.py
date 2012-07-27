@@ -39,10 +39,10 @@ from usherpa.serialcomm import *
 # Searial Packet stream instance
 ps = None
 
-def exti(packet):
+def exti(msg, packet):
 	''' Callback handler for external interrupts received from uSherpa ''' 
  
-	print "Received external interrupt: ", packet
+	print "Received external interrupt: ", msg, packet
 
 try:
 

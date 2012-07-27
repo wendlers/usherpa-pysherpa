@@ -37,7 +37,7 @@ class SerialPacketStream(PacketStream):
 		serStream = serial.Serial()
 		serStream.port 		= port
 		serStream.speed 	= speed
-		serStream.timeout 	= 0.1
+		serStream.timeout 	= 1
 		serStream.open()
 		PacketStream.__init__(self, serStream)
 

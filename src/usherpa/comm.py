@@ -27,6 +27,7 @@ import time
 
 from array import array
 from threading import Thread, Lock, Condition
+from thread import start_new_thread
 
 class PacketException(Exception):
 	'''
@@ -338,7 +339,7 @@ class PacketStream(Thread):
 		except Exception as e:
 			raise PacketStreamException(e.__str__())
 		finally:
-			self.sendLock.relese()
+			self.sendLock.release()
 
 		# only works with pyserial >= 2.5
 		# self.stream.write(pkt.toByteArray())
@@ -400,35 +401,44 @@ class PacketStream(Thread):
 	
 		p = Packet()
 
-		# byte array to convert received
-		ba = array('B', [ 0 ])
-
 		self.running = True
 
-		while self.running:
+		while True:
 
-			s = self.stream.read(Packet.PACKET_MAX_DATA + 4)
+			# wait for start byte
+			while self.running:
 
-			'''
-			nb = self.stream.inWaiting()
+				s = self.stream.read() 
 
-			if nb > 1:
-				print "multible bytes waiting: " + `nb`
-				s = self.stream.read(nb)
-			else:
-				s = self.stream.read()
-			'''
+				if not len(s) == 0:
+					os = ord(s[0])
+					if os == Packet.PACKET_START_INB or os == Packet.PACKET_START_INBEV:
+						p.addByte(os)
+						break					
+					
+			if not self.running:
+				break
 
-			# timed out (since nothing to read on stream)
+			# wait for packet length
+			s = self.stream.read() 
+
+			# timed out ... 
 			if len(s) < 1:
 				continue
 
+			p.addByte(ord(s[0]))
+
+			# read rest of data
+			s = self.stream.read(p.length - 2)
+
+ 			# timed out ...
+			if not len(s) == p.length - 2:
+				continue
+	
 			# pump all received to packet
 			for bs in s:
 
-				ba[0] = ord(bs) 
-			
-				p.addByte(bs)
+				p.addByte(ord(bs))
 
 				if p.isComplete():
 					if not self.evHandler == None and p.start == Packet.PACKET_START_INBEV:
@@ -436,7 +446,7 @@ class PacketStream(Thread):
 						ep = Packet()
 						ep.fromByteArray(p.toByteArray()) 
 						p.clear()
-						thread.start_new_thread(self.evHandler, (ep))
+						start_new_thread(self.evHandler, ('EVENT', ep))
 					else:
 						self.packetAvail.acquire()
 						self.packet = Packet()
