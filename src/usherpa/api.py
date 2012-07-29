@@ -241,7 +241,11 @@ class uSherpa:
 	# PIN P2.7 on MSP430/Launchpad
 	PIN_2_7		= 0x27
 
-	packetStream = None
+	# Packet stream used for transfer
+	packetStream 	= None
+
+	# Number of retrys on xfer
+	retrys		 	= 0
 
 	def __init__(self, packetStream):
 		self.packetStream = packetStream
@@ -258,7 +262,7 @@ class uSherpa:
 			p = Packet()
 			p.fromFields(Packet.PACKET_START_OUTB, length, ptype, data)
 
-			ret = self.packetStream.xfer(p)
+			ret = self.packetStream.xfer(p, self.retrys)
 
 		except Exception as e:
 			raise uSherpaException(e.__str__())

@@ -374,7 +374,7 @@ class PacketStream(Thread):
 
 		return p
 
-	def xfer(self, pkt):
+	def xfer(self, pkt, retry=0):
 		'''
 		Send a packet, wait for the response, and return the response packet.
 		If after one second no response packet was received, a PacketStreamException
@@ -383,17 +383,26 @@ class PacketStream(Thread):
 		'''
 
 		res = None
+		t 	= retry
 
 		self.xferLock.acquire()
+
+		while True:
+
+			try:
+				self.send(pkt)
+				res = self.receive()
+				# no more retrys since everything went well
+				break
+			except Exception as e:
+				t = t - 1
+				print "xfer failed - trys left: ", t
+				if t < 0:
+					self.xferLock.release()
+					raise PacketStreamException(e.__str__())
 		
-		try:
-			self.send(pkt)
-			res = self.receive()
-		except Exception as e:
-			raise PacketStreamException(e.__str__())
-		finally:
-			self.xferLock.release()
-		
+		self.xferLock.release()
+
 		return res
 
 	def run(self):
@@ -404,6 +413,8 @@ class PacketStream(Thread):
 		self.running = True
 
 		while True:
+
+			p.clear()
 
 			# wait for start byte
 			while self.running:
@@ -445,13 +456,13 @@ class PacketStream(Thread):
 						# event handler registered, and event received
 						ep = Packet()
 						ep.fromByteArray(p.toByteArray()) 
-						p.clear()
+						# process listener in thread
 						start_new_thread(self.evHandler, ('EVENT', ep))
 					else:
+						# notify reader
 						self.packetAvail.acquire()
 						self.packet = Packet()
 						self.packet.fromByteArray(p.toByteArray()) 
-						p.clear()
 						self.packetAvail.notify()
 						self.packetAvail.release()
 
