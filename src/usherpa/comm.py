@@ -357,7 +357,7 @@ class PacketStream(Thread):
 
 		# wait until response packet is available
 		if self.packet == None or not self.packet.isComplete():	
-			self.packetAvail.wait(1)
+			self.packetAvail.wait(2)
 
 		# if packet is still not available, raise timeout exception
 		if self.packet == None or not self.packet.isComplete():	
