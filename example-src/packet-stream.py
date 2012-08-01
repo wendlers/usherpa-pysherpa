@@ -25,6 +25,7 @@ This file is part of the uSherpa Python Library project
 
 import time
 import traceback
+import binascii
 
 from array import array
 from usherpa.comm import Packet, PacketStream, PacketException, PacketStreamException
@@ -37,10 +38,24 @@ class DummyStream:
 
 	idx 	= 0
 
-	data 	= array('B', [ 0x18, 0x01, 0x24, 0x07, 0x06, 0x22, 0x20, 0x4e, 0xc1, 0xFF, 0x24, 0x06, 0x05, 0x13, 0x03, 0x45, ])
+	# data 	= array('B', [ 0x18, 0x01, 0x24, 0x07, 0x06, 0x22, 0x20, 0x4e, 0xc1, 0xFF, 0x24, 0x06, 0x05, 0x13, 0x03, 0x45, ])
+	data 	= "\x18\x01\x2b\x07\x06\x22\x20\x4e\xc1\xFF\x2b\x06\x05\x13\x03\x45"
+
+	def flushOutput(self):
+		print "DummyStream::flushOutput"
+		pass
+
+	def flushInput(self):
+		print "DummyStream::flushInput"
+		pass
+
+	def close(self):
+		print "DummyStream::close"
+		pass
 
 	def write(self, b):
-		print "> " + hex(b)
+		# print "> " + hex(b)
+		print "> ", binascii.hexlify(b)
 
 	def read(self):
 
@@ -55,6 +70,7 @@ class DummyStream:
 		if self.idx >= len(self.data): 
 			self.idx = 0
 
+		print "< ",  binascii.hexlify(b)	
 		return b	
 
 s = DummyStream()
@@ -90,4 +106,4 @@ except PacketStreamException as e:
 except Exception as e:
 	print traceback.format_exc()
 finally:
-	ps.close()
+	ps.stop()

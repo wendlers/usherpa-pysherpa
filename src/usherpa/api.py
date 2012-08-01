@@ -75,6 +75,9 @@ class uSherpa:
  	# IN-bound packet of type PULSE LENGTH READ 
 	PACKET_IN_PULSELENGTH_READ 					= 0x05
 
+ 	# IN-bound packet of type PULSE LENGTH READ DHF
+	PACKET_IN_PULSELENGTH_READ_DHF 				= 0x06
+
  	# Return status ACK for the STATUS 
 	# OUT-bound packet
 	PACKET_RETURN_ACK							= 0x01
@@ -337,12 +340,17 @@ class uSherpa:
 		
 		return val
 
-	def pulselengthRead(self, pin):
+	def pulselengthRead(self, pin, dhf=False):
+
+		mode = self.PIN_CONTROL_PULSELENGTH_READ
+
+		if dhf:
+			mode = self.PIN_CONTROL_PULSELENGTH_READ_DHF
 
 		ret = self.xferAndCheckType(self.PACKET_OUT_PIN_CONTROL,  
-			array('B', [pin, self.PIN_CONTROL_PULSELENGTH_READ]),  
+			array('B', [pin, mode]),  
 			self.PACKET_IN_PULSELENGTH_READ)
-
+	
 		lsb = 0x00FF & ret.data[1]
 		msb = 0x00FF & ret.data[2]
 		val = 0xFFFF & (lsb | (msb << 8))

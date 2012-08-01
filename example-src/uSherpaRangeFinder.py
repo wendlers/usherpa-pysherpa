@@ -41,28 +41,14 @@ try:
 
 	us = uSherpa(ps)
 
-	# configure pin 1.3 (internal button on Launchpad) for input 
- 	print "Set P1.3 to INPUT: "  
+	# configure pin 2.0 for input 
+ 	print "Set P2.0 to INPUT: "  
 	us.pinMode(uSherpa.PIN_2_0, uSherpa.INPUT)
 	print "-> OK"
 
-	# configure pin 1.7 for output 
- 	print "Set P1.7 to OUTPUT: "  
-	us.pinMode(uSherpa.PIN_1_7, uSherpa.OUTPUT)
-	print "-> OK"
+	pl = us.pulselengthRead(uSherpa.PIN_2_0, True); 
 
-	print "drive trigger high for 10us"
-	us.digitalWrite(uSherpa.PIN_1_7, uSherpa.HIGH)
-	us.digitalWrite(uSherpa.PIN_1_7, uSherpa.LOW)
-
-	cnt = 0
-
-	print us.digitalRead(uSherpa.PIN_2_0)
-
-	while us.digitalRead(uSherpa.PIN_2_0):
-		cnt = cnt + 1
- 
-	print "-> OK: pl was: " + `cnt`
+	print "Pulselenght was: " + `pl`
 
 	# reset MCU 
   	print "RESET: "  

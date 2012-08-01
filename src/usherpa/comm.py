@@ -308,7 +308,6 @@ class PacketStream(Thread):
 		Thread.start(self)
 
 		while not self.running:
-			print "wait for thread to startup"
 			time.sleep(0.1)
 			
 	def stop(self):

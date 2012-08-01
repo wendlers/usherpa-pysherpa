@@ -31,7 +31,7 @@ from usherpa.serialcomm import *
 # Searial Packet stream instance
 ps = None
 
-def dcToDuty(dc):
+def dcConvert(dc):
 	d = 0xFF / 100 * dc
 	return int(d)
 
@@ -57,9 +57,9 @@ try:
 	us.pwmPeriod(uSherpa.PIN_1_6, 22000)
 	print "OK"    
 
-	# set PWM duty cycle to 9% on pin 1.6 
-	print "Set P1.6 DC to 9%: "
-	us.pwmDuty(uSherpa.PIN_1_6, dcToDuty(dc1))
+	# set initial PWM duty cycle on pin 1.6 
+	print "Set P1.6 DC: "
+	us.pwmDuty(uSherpa.PIN_1_6, dcConvert(dc1))
 	print "OK"    
 
 	# configure pin 2.2 (internal LED on Launchpad) for PWM output
@@ -72,9 +72,9 @@ try:
 	us.pwmPeriod(uSherpa.PIN_2_2, 22000)
 	print "OK"    
 
-	# set PWM duty cycle to 9% on pin 2.2
-	print "Set P2.2 DC to 9%: "
-	us.pwmDuty(uSherpa.PIN_2_2, dcToDuty(dc2))
+	# set initial PWM duty cycle on pin 2.2
+	print "Set P2.2 DC: "
+	us.pwmDuty(uSherpa.PIN_2_2, dcConvert(dc2))
 	print "OK"    
 
 	try:
@@ -85,22 +85,22 @@ try:
 
 			if c == "7":
 				dc1 = 14 
-				us.pwmDuty(uSherpa.PIN_1_6, dcToDuty(dc1))	
+				us.pwmDuty(uSherpa.PIN_1_6, dcConvert(dc1))	
 			elif c == "8":
 				dc1 = 8.5 
-				us.pwmDuty(uSherpa.PIN_1_6, dcToDuty(dc1))	
+				us.pwmDuty(uSherpa.PIN_1_6, dcConvert(dc1))	
 			elif c == "9":
 				dc1 = 4 
-				us.pwmDuty(uSherpa.PIN_1_6, dcToDuty(dc1))	
+				us.pwmDuty(uSherpa.PIN_1_6, dcConvert(dc1))	
 			elif c == "4":
 				dc2 = 14
-				us.pwmDuty(uSherpa.PIN_2_2, dcToDuty(dc2))	
+				us.pwmDuty(uSherpa.PIN_2_2, dcConvert(dc2))	
 			elif c == "5":
 				dc2 = 8.5 
-				us.pwmDuty(uSherpa.PIN_2_2, dcToDuty(dc2))	
+				us.pwmDuty(uSherpa.PIN_2_2, dcConvert(dc2))	
 			elif c == "6":
 				dc2 = 6 
-				us.pwmDuty(uSherpa.PIN_2_2, dcToDuty(dc2))	
+				us.pwmDuty(uSherpa.PIN_2_2, dcConvert(dc2))	
 			elif c == "q":
 				break
 	
