@@ -43,10 +43,11 @@ try:
 
 	# configure pin 2.0 for input 
  	print "Set P2.0 to INPUT: "  
-	us.pinMode(uSherpa.PIN_2_0, uSherpa.INPUT)
+	us.pinMode(uSherpa.PIN_2_0, uSherpa.OUTPUT)
+	us.pinMode(uSherpa.PIN_2_1, uSherpa.INPUT)
 	print "-> OK"
 
-	pl = us.pulselengthRead(uSherpa.PIN_2_0, True); 
+	pl = us.pulselengthRead(uSherpa.PIN_2_1, True); 
 
 	print "Pulselenght was: " + `pl`
 

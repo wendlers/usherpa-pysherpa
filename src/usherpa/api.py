@@ -75,9 +75,6 @@ class uSherpa:
  	# IN-bound packet of type PULSE LENGTH READ 
 	PACKET_IN_PULSELENGTH_READ 					= 0x05
 
- 	# IN-bound packet of type PULSE LENGTH READ DHF
-	PACKET_IN_PULSELENGTH_READ_DHF 				= 0x06
-
  	# Return status ACK for the STATUS 
 	# OUT-bound packet
 	PACKET_RETURN_ACK							= 0x01
@@ -121,6 +118,10 @@ class uSherpa:
  	# Control command PULSELENGTH READ for the 
 	# PIN CONTROL packet
 	PIN_CONTROL_PULSELENGTH_READ				= 0x05
+
+ 	# Control command PULSELENGTH READ DHF for the 
+	# PIN CONTROL packet
+	PIN_CONTROL_PULSELENGTH_READ_DHF			= 0x06
 
  	# PIN function input float
 	PIN_FUNCTION_INPUT_FLOAT					= 0x00
@@ -271,6 +272,7 @@ class uSherpa:
 			raise uSherpaException(e.__str__())
 
 		if not ret.ptype == checkType:
+			print ret
 			raise uSherpaException("Wrong packet type. Expected " + 
 				`checkType` + " and received " + `ret.ptype`)
 
