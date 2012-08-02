@@ -43,14 +43,19 @@ try:
 
 	# configure pin 2.0 for input 
  	print "Set P2.0 to INPUT: "  
-	us.pinMode(uSherpa.PIN_2_0, uSherpa.OUTPUT)
-	us.pinMode(uSherpa.PIN_2_1, uSherpa.INPUT)
+	us.pinMode(uSherpa.PIN_2_0, uSherpa.INPUT)
 	print "-> OK"
 
-	pl = us.pulselengthRead(uSherpa.PIN_2_1, True); 
+	prevPl = 10000 
 
-	print "Pulselenght was: " + `pl`
-
+	while True:
+		pl = us.pulselengthRead(uSherpa.PIN_2_0, True); 
+		if pl - prevPl > 2 or prevPl - pl > 2:
+			prevPl = pl
+			plCm = pl * 2 / 10
+			print "Pulselenght was: " + `pl` + " ~ " + `plCm` + " cm"
+		time.sleep(0.1)
+		
 	# reset MCU 
   	print "RESET: "  
 	us.reset()
