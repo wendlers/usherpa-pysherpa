@@ -20,21 +20,62 @@
 ##
 
 '''
-This file is part of the uSherpa Python Library project
+This file provides the main API class for using uSherpa. 
+
+Minimal Usage example:
+----------------------
+
+from usherpa.api import *
+from usherpa.serialcomm import *
+
+# Searial packet stream instance
+ps = None
+
+try:
+
+	# Create serial packet stream that connects to MCU running uSherpa via serial 
+	# line on port'/dev/ttyUSB0'.
+	ps = SerialPacketStream("/dev/ttyUSB0")
+
+	# Start the packet streams receiver thread
+	ps.start()
+
+	# Creat uSherpa API instance using serial packet stream as transport
+	us = uSherpa(ps)
+
+	# Configure pin 1.0 (internal LED on Launchpad) for output
+	us.pinMode(uSherpa.PIN_1_0, uSherpa.OUTPUT)
+
+	# Set pin 1.0 to high (enable LED)
+	us.digitalWrite(uSherpa.PIN_1_0, uSherpa.HIGH)
+
+except Exception as e:
+	print e 
+
+finally:
+	if not ps == None:
+		# Stop packet streams receiver thread
+		ps.stop()	
 '''
 
 from usherpa.comm import *
 
 class uSherpaException(Exception):
+	'''
+	Exception thrown whenever someting went wrong while using the uSherpa API.
+	'''
 
 	def __init__(self, value):
+		''' Constructor '''
 		self.value = value
 
 	def __str__(self):
+		''' String representation '''
 		return repr(self.value)
 
 class uSherpa:
-
+	''' uSherpa API main class '''
+	
 	# OUT-bound packet of type NULL
 	PACKET_OUT_NULL 							= 0x00 
 	
@@ -252,10 +293,22 @@ class uSherpa:
 	retrys		 	= 0
 
 	def __init__(self, packetStream):
+		''' 
+		Constructor which takes a PacketStream as argument. The PacketStream 
+		then is used as pysical transport to the MCU.
+		'''
+	
 		self.packetStream = packetStream
 
 	def xferAndCheckType(self, ptype, data, checkType):
-		
+		'''
+		Send data to MCU, receive response. ptype is the packet type to send,
+		and data is the payload in form of an array('B', [,,,]). Check type
+		it the packet type against which the type of the return packet is chacked.
+		If the types don't match a uSherpaException is thrown. If the CRC of the
+		received packet is wron, also a uSherpaException is thrown.
+		''' 
+
 		ret 	= None 
 		length 	= 4
 
