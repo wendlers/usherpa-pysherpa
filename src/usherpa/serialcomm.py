@@ -31,9 +31,13 @@ class SerialPacketStream(PacketStream):
 	''' A packet stream operating on the serial line '''
 	
 	def __init__(self, port = "/dev/ttyACM0", speed = 9600):
-		''' Constructor '''
+		''' 
+		Constructor for packet stream over serial line. 
 
-		# serStream = serial.PosixPollSerial()
+		@param	port	(optional) serial port, default is '/dev/ttyACM0'
+		@param	speed	(optional) speed for serial port, default is 9600 bauds
+		'''
+
 		serStream = serial.Serial()
 		serStream.port 		= port
 		serStream.speed 	= speed

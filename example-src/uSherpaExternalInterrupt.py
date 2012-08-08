@@ -72,17 +72,17 @@ try:
 	print "-> OK"
 
 	# for pin 1.3 enable external interrupt for high-to-low transitions
- 	print "Enable EXTI on HIGH-LOW transition for P1.3: "
-	us.externalInterrupt(uSherpa.PIN_1_3, uSherpa.EDGE_HIGHLOW);
+ 	print "Enable EXTI on HIGH-LOW transition for P1.3, trigger count is 2: "
+	us.externalInterrupt(uSherpa.PIN_1_3, uSherpa.EDGE_HIGHLOW, 2);
 	print "-> OK"
 
 	# for pin 2.3 enable external interrupt for low-to-high transitions
- 	print "Enable EXTI on HIGH-LOW transition for P2.3: "
-	us.externalInterrupt(uSherpa.PIN_2_3, uSherpa.EDGE_LOWHIGH);
+ 	print "Enable EXTI on HIGH-LOW transition for P2.3, trigger count is 3: "
+	us.externalInterrupt(uSherpa.PIN_2_3, uSherpa.EDGE_LOWHIGH, 3);
 	print "-> OK"
 
 	# for pin 2.4 enable external interrupt for high-to-low transitions
- 	print "Enable EXTI on HIGH-LOW transition for P2.4: "
+ 	print "Enable EXTI on HIGH-LOW transition for P2.4, trigger count is default (1) : "
 	us.externalInterrupt(uSherpa.PIN_2_4, uSherpa.EDGE_HIGHLOW);
 	print "-> OK"
 	

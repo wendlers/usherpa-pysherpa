@@ -36,7 +36,11 @@ class PacketException(Exception):
 	'''
 
 	def __init__(self, value):
-		''' Constructor '''
+		''' 
+		Constructor 
+		
+		@param value	Message to assign to this exception
+		'''
 		self.value = value
 
 	def __str__(self):
@@ -50,7 +54,11 @@ class PacketStreamException(Exception):
 	'''
 
 	def __init__(self, value):
-		''' Constructor '''
+		''' 
+		Constructor 
+		
+		@param value	Message to assign to this exception
+		'''
 		self.value = value
 
 	def __str__(self):
@@ -102,7 +110,16 @@ class Packet:
 		self.clear()
 
 	def fromFields(self, start, length, ptype, data, crc = None):
-		''' Assign package content from fields '''
+		''' 
+		Create package content from fields.
+
+		@param 	start		start-byte
+		@param	length		length including start byte and CRC
+		@param	ptype		packet type
+		@param	data		payload
+		@param	crc			CRC (optional, if not provided will be calculated)
+		@raises	PacketException
+		'''
 
 		self.clear()
 
@@ -121,7 +138,7 @@ class Packet:
 			raise PacketException("CRC error")
 
 	def clear(self):
-		''' Clear package content '''
+		''' Clear packet content. '''
 
 		self.start 			= 0
 		self.length 		= 0
@@ -132,9 +149,12 @@ class Packet:
 
 	def addByte(self, b):
 		''' 
-		Add a single byte (e.g. from a stream) to packet content. 
-		Bytes are only added when the PACKET_START_x byte was received
-		before.
+		Add a single byte (e.g. from a stream) to the packet content. 
+		Bytes are only added when the PACKET_START_x byte was received.
+		At the moment the packet is complete, isComplete() will return True.
+
+		@param	b		byte to add
+		@raises	PacketException 
 		'''
 
 		if self.currFill == self.PACKET_FILL_WAIT:
@@ -191,7 +211,12 @@ class Packet:
 			raise PacketException("Packet already complete")
 
 	def fromByteArray(self, pkt):
-		''' Assign packet content from a byte array '''
+		''' 
+		Assign packet content from a byte array. 
+	
+		@param 	pkt		array('B', [...]) with complete packet
+		@raises	PacketException 
+		'''
 
 		self.clear()
 
@@ -199,7 +224,11 @@ class Packet:
 			self.addByte(b)
 
 	def toByteArray(self):
-		''' Return packet content as byte array '''
+		''' 
+		Return packet content as byte array. 
+
+		@return byte array('B', [...]) with complete packet content
+		'''
 
 		if not self.isComplete():
 			raise PacketException("Incompelte packet")
@@ -226,7 +255,7 @@ class Packet:
 		return pkt
 
 	def calcCrc(self):
-		''' Calculate and return CRC of the packets current content '''
+		''' Calculate and return CRC of the packets current content. '''
 
 		pkt = self.toByteArray()
 
@@ -238,17 +267,25 @@ class Packet:
 		return 0xFF & (newCrc - pkt[len(pkt) - 1])
 
 	def checkCrc(self):
-		''' Compare CRC from packet content to calulated CRC. Returns True or False. '''
+		''' 
+		Compare CRC from packet content to calulated CRC. 
+
+		@return True if CRC matches, False otherwise
+		'''
 
 		return (self.crc & 0xFF == self.calcCrc())
 	
 	def isComplete(self):
-		''' Check if packet content is complete. '''	
+		''' 
+		Check if packet content is complete. 
+
+		@return True if content is complete, False otherwise
+		'''	
 
 		return (self.currFill == self.PACKET_FILL_COMPLETE)
 
 	def __str__(self):
-		''' String representation '''
+		''' String representation. '''
 	
 		pkt = None
 
@@ -269,7 +306,7 @@ class Packet:
 class PacketStream(Thread):
 	''' 
 	General packet stream implementation. The packet stream implementation
-	is responsible for parsing packets out of a physical transport stream
+	is responsible for parsing packets received through a physical transport stream
 	(e.g. the serial line) and to put packets on that physical transport
 	stream. Packet reading from the stream is done in a reader thread.
 	'''	
@@ -289,7 +326,11 @@ class PacketStream(Thread):
 	evHandler   = None
 
 	def __init__(self, stream):
-		''' Constructor '''
+		''' 
+		Constructor for general packet stream. 
+
+		@param	stream		physical stream to use for transport
+		'''
 
 		self.stream   		= stream
 		self.sendLock 		= Lock()
@@ -299,11 +340,11 @@ class PacketStream(Thread):
 		Thread.__init__(self)
 
 	def __del__(self):
-		''' Destructor, stops the receiver thread if running '''
+		''' Destructor, stops the receiver thread if running. '''
 		self.stop()
 	
 	def start(self):
-		''' Start the receiver thread '''
+		''' Start the receiver thread. '''
 
 		Thread.start(self)
 
@@ -311,7 +352,7 @@ class PacketStream(Thread):
 			time.sleep(0.1)
 			
 	def stop(self):
-		''' Stop the receiver thread, close the stream '''
+		''' Stop the receiver thread, close the stream. '''
 
 		self.interrupt()
 		self.join()
@@ -320,6 +361,9 @@ class PacketStream(Thread):
 	def send(self, pkt):
 		''' 
 		Send a packet blocking through the assigned stream.		
+
+		@param	pkt		packet to send
+		@raises	PacketStreamException
 		'''
 	
 		if self.stream == None:
@@ -345,8 +389,11 @@ class PacketStream(Thread):
 
 	def receive(self):
 		'''
-		Receive a packet blocking from the stream. If after one second
+		Receive a packet blocking from the stream. If after two seconds
 		no packet was received, a PacketStreamException will be thrown.
+
+		@return	the Packet received
+		@raises PacketStreamException
 		'''
 		
 		if not self.running:
@@ -375,10 +422,15 @@ class PacketStream(Thread):
 
 	def xfer(self, pkt, retry=0):
 		'''
-		Send a packet, wait for the response, and return the response packet.
-		If after one second no response packet was received, a PacketStreamException
+		Send a packet, wait for the response, return the response packet.
+		If after two seconds no response packet was received, a PacketStreamException
 		will be thrown. This method is synchronized in a way, that no two callers
 		could perform an xfer at the same time.
+
+		@param	pkt		Packet to send
+		@param	retray	(optional) number of retrys in case of errors
+		@return	Packet received in response
+		@raises PacketStreamException
 		'''
 
 		res = None
@@ -405,7 +457,7 @@ class PacketStream(Thread):
 		return res
 
 	def run(self):
-		''' Overlodad run function, executed when start is called '''
+		''' Overlodad run function, executed when start of thread is called. '''
 	
 		p = Packet()
 

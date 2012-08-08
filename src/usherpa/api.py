@@ -66,7 +66,12 @@ class uSherpaException(Exception):
 	'''
 
 	def __init__(self, value):
-		''' Constructor '''
+		''' 
+		Constructor 
+		
+		@param value	Message to assign to this exception
+		'''
+
 		self.value = value
 
 	def __str__(self):
@@ -185,7 +190,7 @@ class uSherpa:
 	PIN_FUNCTION_PWM							= 0x05
 
 	# PIN function EXTERNAL INTERRUPT DISABLE
-	PIN_FUNCTION_EXTI_DISABLE 					=  0x00
+	PIN_FUNCTION_EXTI_DISABLE 					= 0x00
 	
 	# PIN function EXTERNAL INTERRUPT HIGH-LOW
 	PIN_FUNCTION_EXTI_LOWHIGH 					=  0x01
@@ -296,17 +301,26 @@ class uSherpa:
 		''' 
 		Constructor which takes a PacketStream as argument. The PacketStream 
 		then is used as pysical transport to the MCU.
+	 	
+		@param	packetStream	the packet stream to use for communication
+	 	@raises	uSherpaException
 		'''
 	
 		self.packetStream = packetStream
 
-	def xferAndCheckType(self, ptype, data, checkType):
+	def __xferAndCheckType(self, ptype, data, checkType):
 		'''
 		Send data to MCU, receive response. ptype is the packet type to send,
 		and data is the payload in form of an array('B', [,,,]). Check type
 		it the packet type against which the type of the return packet is chacked.
 		If the types don't match a uSherpaException is thrown. If the CRC of the
-		received packet is wron, also a uSherpaException is thrown.
+		received packet is wrong, also a uSherpaException is thrown.
+
+	 	@param 	ptype			type for packet to send 
+	 	@param 	data			data for packet to send
+	 	@param 	checkType		type to which the type of the returned packet is checked
+	 	@return	the returned packet
+	 	@raises uSherpaException
 		''' 
 
 		ret 	= None 
@@ -332,9 +346,17 @@ class uSherpa:
 
 		return ret
 
-	def xferAndCheckAck(self, ptype, data):
-		
-		ret = self.xferAndCheckType(ptype, data, self.PACKET_IN_STATUS);
+	def __xferAndCheckAck(self, ptype, data):
+		'''
+		Send a packet, and check if the return packet was a ACK packet. If not, throws a
+	 	uSherpaException.
+	  
+	 	@param 	ptype			type for packet to send 
+	 	@param 	data			data for packet to send
+	 	@raises	uSherpaException
+		'''
+	
+		ret = self.__xferAndCheckType(ptype, data, self.PACKET_IN_STATUS);
 		
 		if not ret.data[0] == self.PACKET_RETURN_ACK:
 			msg = "Wrong status. Expected ACK and received "
@@ -353,39 +375,88 @@ class uSherpa:
 			raise uSherpaException(msg)
 
 	def packetNull(self):
+		'''
+	 	Send NULL packet.
 
-		self.xferAndCheckAck(self.PACKET_OUT_NULL, None)
+ 	 	@raises	uSherpaException
+		'''
+
+		self.__xferAndCheckAck(self.PACKET_OUT_NULL, None)
 
 	def pinMode(self, pin, mode):
+		'''
+		Set a digital pin to input or output mode.
+	 	Also sets pull-ups/downs for input if requested. 
 
-		self.xferAndCheckAck(self.PACKET_OUT_PIN_FUNCTION, array('B', [pin, mode]))
+	 	@param 	pin 		the pin whose mode to set 
+	 	@param 	mode 		either input (with options) or output
+ 	 	@raises uSherpaException 
+		'''
+	
+		self.__xferAndCheckAck(self.PACKET_OUT_PIN_FUNCTION, array('B', [pin, mode]))
 
 	def pwmPeriod(self, pin, period): 
-
+		'''
+	 	Setup PWM period. This is only allowed for a pin configured in mode PWM
+		before.
+	 
+	 	@param 	pin 	the pin to set the PWM period for 
+	 	@param 	period 	PWM period in microseconds
+ 	 	@raises	uSherpaException 
+		'''
+	
 		lsb =  0x000000FF & period 
 		msb = (0x0000FF00 & period) >> 8
 
-		self.xferAndCheckAck(self.PACKET_OUT_PWM_FUNCTION, array('B', [pin, lsb, msb]))
+		self.__xferAndCheckAck(self.PACKET_OUT_PWM_FUNCTION, array('B', [pin, lsb, msb]))
 
 	def pwmDuty(self, pin, duty):	
-
-		self.xferAndCheckAck(self.PACKET_OUT_PWM_CONTROL, array('B', [pin, duty]))
+		'''
+	 	Setup PWM duty cycle for the PWM. 0 means 0%, 0xFF (255) means 100%.
+	
+	 	@param 	pin 	the pin whose mode to set 
+	 	@param 	duty 	duty cycle 0-255 is 0-100%
+ 	 	@raises uSherpaException 
+		'''
+	
+		self.__xferAndCheckAck(self.PACKET_OUT_PWM_CONTROL, array('B', [pin, duty]))
 
 	def digitalWrite(self, pin, value):
-
-		self.xferAndCheckAck(self.PACKET_OUT_PIN_CONTROL, array('B', [pin, value]))
+		'''
+	 	Write to a digital pin (the pin must have been put into output mode with pinMode()).
+	 
+	 	@param 	pin 		the pin to write to 
+	 	@param 	value      		the value to write: LOW, HIGH or TOGGLE
+ 	 	@raises	uSherpaException  
+		'''
+	
+		self.__xferAndCheckAck(self.PACKET_OUT_PIN_CONTROL, array('B', [pin, value]))
 
 	def digitalRead(self, pin):
+		'''
+		Read from digital pin (the pin must have been put into input mode with pinMode()).
 
-		ret = self.xferAndCheckType(self.PACKET_OUT_PIN_CONTROL,  
+	 	@param 	pin 		the pin to read from 
+	 	@return current state of the pin
+ 	 	@raises uSherpaException 
+		'''
+
+		ret = self.__xferAndCheckType(self.PACKET_OUT_PIN_CONTROL,  
 			array('B', [pin, self.PIN_CONTROL_DIGITAL_READ]),
 			self.PACKET_IN_DIGITAL_PIN_READ)
 
 		return ret.data[1]
 
 	def analogRead(self, pin):
-
-		ret = self.xferAndCheckType(self.PACKET_OUT_PIN_CONTROL, 
+		'''
+		Perform analog read from pin (the pin must have been put into input mode with pinMode()).
+	 
+	 	@param 	pin 		the pin to read from 
+	 	@return current value of pin
+ 	 	@raises	uSherpaException 
+		'''
+	
+		ret = self.__xferAndCheckType(self.PACKET_OUT_PIN_CONTROL, 
 			array('B', [pin, self.PIN_CONTROL_ANALOG_READ]), 
 			self.PACKET_IN_ANALOG_PIN_READ)
 
@@ -396,13 +467,31 @@ class uSherpa:
 		return val
 
 	def pulselengthRead(self, pin, dhf=False):
+		'''
+		Read pulselenght from pin (the pin must have been put into input mode with
+		pinMode()). The function waits until the requested pin changes its state, 
+		then measures the time it takes until the original pin state is seen again. 
+		In case the state changes take longer then 0xFFFF, the function terminates,
+		with an exeption. 
+
+		If dhf (drive-high-first) is set to True, the input is switched to output
+		and driven high for at lieat 10us. Then, the pin is set back to wathever
+		input it was before, and the pulse-length is read. This is especially 
+		helpful when working with sensors that return the values digitally.
+	
+		@param 	pin 	the pin to read from 
+		@param 	dhf 	if set to True, the pin is driven high for ~10us before 
+						pulse-lenght is measuered	
+		@return pulse-lenght read on pin	
+ 		@raises	uSherpaException 
+		'''
 
 		mode = self.PIN_CONTROL_PULSELENGTH_READ
 
 		if dhf:
 			mode = self.PIN_CONTROL_PULSELENGTH_READ_DHF
 
-		ret = self.xferAndCheckType(self.PACKET_OUT_PIN_CONTROL,  
+		ret = self.__xferAndCheckType(self.PACKET_OUT_PIN_CONTROL,  
 			array('B', [pin, mode]),  
 			self.PACKET_IN_PULSELENGTH_READ)
 	
@@ -416,8 +505,14 @@ class uSherpa:
 		return val
 
 	def systemInfo(self):
-		
-		ret = self.xferAndCheckType(self.PACKET_OUT_SYSTEM_INFO, None, self.PACKET_IN_SYSTEM_INFO)
+		'''
+		System info from uSherpa firmware running on MCU.
+
+	 	@return	System info as a dictionary (board_type, mcu_type, firmware_rev) 
+ 	 	@raises	uSherpaException 
+		'''
+	
+		ret = self.__xferAndCheckType(self.PACKET_OUT_SYSTEM_INFO, None, self.PACKET_IN_SYSTEM_INFO)
 
 		board_type = 0x000000FF & ret.data[0]
 		mcu_type   = 0x000000FF & ret.data[1]
@@ -428,11 +523,25 @@ class uSherpa:
 		return inf
 
 	def reset(self):
+		'''
+		Reset MCU. 
 
-		self.xferAndCheckAck(self.PACKET_OUT_RESET, None)
+ 		@raises	uSherpaException 
+		'''
 
-	def externalInterrupt(self, pin, mode): 
+		self.__xferAndCheckAck(self.PACKET_OUT_RESET, None)
 
-		self.xferAndCheckAck(self.PACKET_OUT_EXTERNAL_INTERRUPT_FUNCTION, 
-			array('B', [pin, mode]))
+	def externalInterrupt(self, pin, mode, triggerCount = 1): 
+		'''
+		Enabled / disables external interrupts for a given pin. 
+		Interrupting is disabled if mode is set to EDGE_NONE, 
+		and enabled with EDGE_LOWHIGH or EDGE_HIGHLOW. 
+
+		@param pin		the pin for which to disable/enable external interrupt 
+		@param mode		edge mode for extrnal interrupt (EDGE_LOWHIGH, EDGE_HIGHLOW, EDGE_NONE)
+ 		@raises	uSherpaException 
+		'''
+
+		self.__xferAndCheckAck(self.PACKET_OUT_EXTERNAL_INTERRUPT_FUNCTION, 
+			array('B', [pin, mode, triggerCount]))
 	
