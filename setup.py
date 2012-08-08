@@ -40,5 +40,6 @@ setup(name='pysherpa',
 	license='LGPL 2.1',
 	packages=['usherpa'],
 	platforms=['Linux'],
-	package_dir = {'': 'src'}
+	package_dir = {'': 'src'},
+	requires = ['serial(>=2.4)']
 )
