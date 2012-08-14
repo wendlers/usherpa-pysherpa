@@ -205,7 +205,7 @@ class Packet:
 			self.crc = self.crc & 0xFF
 
 			if b != self.crc:
-				raise PacketException("CRC error: expected " + hex(self.crc) + " and got " + hex(b))
+				raise PacketException("CRC error: expected " + hex(self.crc) + " and got " + hex(b) + "; packet was: " + self.__str__())
 
 		else:
 			raise PacketException("Packet already complete")
@@ -371,12 +371,14 @@ class PacketStream(Thread):
 
 		self.sendLock.acquire()
 		self.stream.flushOutput()
-		self.stream.flushInput()
+		# self.stream.flushInput()
 
 		try:
 
 			for b in pkt.toByteArray():
 				self.stream.write(chr(b))
+
+			print "Send:", pkt
 
 		except Exception as e:
 			raise PacketStreamException(e.__str__())
@@ -413,6 +415,7 @@ class PacketStream(Thread):
 		p = Packet()
 		p.fromByteArray(self.packet.toByteArray())
 
+		print "Received:", p
 		self.packet = None
 		
 		self.packetAvail.release()
@@ -458,7 +461,7 @@ class PacketStream(Thread):
 					raise PacketStreamException(e.__str__())
 
 				# wait a little, then retry
-				time.sleep(0.1)
+				#time.sleep(0.1)
 		
 		self.xferLock.release()
 
@@ -473,57 +476,61 @@ class PacketStream(Thread):
 
 		while True:
 
-			p.clear()
+			try:
+				p.clear()
 
-			# wait for start byte
-			while self.running:
+				# wait for start byte
+				while self.running:
 
+					s = self.stream.read() 
+
+					if not len(s) == 0:
+						os = ord(s[0])
+						if os == Packet.PACKET_START_INB or os == Packet.PACKET_START_INBEV:
+							p.addByte(os)
+							break					
+					
+				if not self.running:
+					break
+
+				# wait for packet length
 				s = self.stream.read() 
 
-				if not len(s) == 0:
-					os = ord(s[0])
-					if os == Packet.PACKET_START_INB or os == Packet.PACKET_START_INBEV:
-						p.addByte(os)
-						break					
-					
-			if not self.running:
-				break
+				# timed out ... 
+				if len(s) < 1:
+					continue
 
-			# wait for packet length
-			s = self.stream.read() 
+				p.addByte(ord(s[0]))
 
-			# timed out ... 
-			if len(s) < 1:
-				continue
+				# read rest of data
+				s = self.stream.read(p.length - 2)
+				print "data:", `s`
 
-			p.addByte(ord(s[0]))
-
-			# read rest of data
-			s = self.stream.read(p.length - 2)
-
- 			# timed out ...
-			if not len(s) == p.length - 2:
-				continue
+ 				# timed out ...
+				if not len(s) == p.length - 2:
+					continue
 	
-			# pump all received to packet
-			for bs in s:
+				# pump all received to packet
+				for bs in s:
 
-				p.addByte(ord(bs))
+					p.addByte(ord(bs))
 
-				if p.isComplete():
-					if not self.evHandler == None and p.start == Packet.PACKET_START_INBEV:
-						# event handler registered, and event received
-						ep = Packet()
-						ep.fromByteArray(p.toByteArray()) 
-						# process listener in thread
-						start_new_thread(self.evHandler, ('EVENT', ep))
-					else:
-						# notify reader
-						self.packetAvail.acquire()
-						self.packet = Packet()
-						self.packet.fromByteArray(p.toByteArray()) 
-						self.packetAvail.notify()
-						self.packetAvail.release()
+					if p.isComplete():
+						if not self.evHandler == None and p.start == Packet.PACKET_START_INBEV:
+							# event handler registered, and event received
+							ep = Packet()
+							ep.fromByteArray(p.toByteArray()) 
+							# process listener in thread
+							start_new_thread(self.evHandler, ('EVENT', ep))
+						else:
+							# notify reader
+							self.packetAvail.acquire()
+							self.packet = Packet()
+							self.packet.fromByteArray(p.toByteArray()) 
+							self.packetAvail.notify()
+							self.packetAvail.release()
+			except:
+				pass
 
 	def interrupt(self):
 		''' 
