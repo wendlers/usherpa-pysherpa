@@ -370,7 +370,6 @@ class PacketStream(Thread):
 			raise PacketStreamException("No stream found!") 
 
 		self.sendLock.acquire()
-		# TODO: check if this is really needed
 		self.stream.flushOutput()
 		self.stream.flushInput()
 
@@ -441,16 +440,25 @@ class PacketStream(Thread):
 		while True:
 
 			try:
+
 				self.send(pkt)
 				res = self.receive()
 				# no more retrys since everything went well
 				break
-			except Exception as e:
+
+			except PacketStreamException as e:
+
 				t = t - 1
+
+				print e
 				print "xfer failed - trys left: ", t
+
 				if t < 0:
 					self.xferLock.release()
 					raise PacketStreamException(e.__str__())
+
+				# wait a little, then retry
+				time.sleep(0.1)
 		
 		self.xferLock.release()
 

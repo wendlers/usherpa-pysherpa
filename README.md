@@ -26,9 +26,8 @@ Prerequisites
 * To use the library, the pyserial library has to be installed. 
 * A MCU (currently the TI Launchpad with MSP430G2553) with uSherpa firmware flashed.
 
-  For details see the uSherpa firmware documentation:
-    
-     https://github.com/wendlers/usherpa-firmware/tree/master/doc  
+For details see the uSherpa [firmware documentation] 
+(https://github.com/wendlers/usherpa-firmware/tree/master/doc).  
 
 
 Install the Library

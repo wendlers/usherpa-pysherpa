@@ -193,10 +193,10 @@ class uSherpa:
 	PIN_FUNCTION_EXTI_DISABLE 					= 0x00
 	
 	# PIN function EXTERNAL INTERRUPT HIGH-LOW
-	PIN_FUNCTION_EXTI_LOWHIGH 					=  0x01
+	PIN_FUNCTION_EXTI_LOWHIGH 					= 0x01
 	
 	# PIN function EXTERNAL INTERRUPT HIGH-LOW
-	PIN_FUNCTION_EXTI_HIGHLOW 					=  0x02
+	PIN_FUNCTION_EXTI_HIGHLOW 					= 0x02
 
 	# Constant to write a low value to a pin 
 	# (in a call to digitalWrite()).
