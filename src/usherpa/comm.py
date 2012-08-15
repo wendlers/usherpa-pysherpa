@@ -522,6 +522,7 @@ class PacketStream(Thread):
 							ep.fromByteArray(p.toByteArray()) 
 							# process listener in thread
 							start_new_thread(self.evHandler, ('EVENT', ep))
+							# self.evHandler('EVENT', ep)
 						else:
 							# notify reader
 							self.packetAvail.acquire()
