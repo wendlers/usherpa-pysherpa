@@ -378,7 +378,7 @@ class PacketStream(Thread):
 			for b in pkt.toByteArray():
 				self.stream.write(chr(b))
 
-			print "Send:", pkt
+			# print "Send:", pkt
 
 		except Exception as e:
 			raise PacketStreamException(e.__str__())
@@ -415,7 +415,7 @@ class PacketStream(Thread):
 		p = Packet()
 		p.fromByteArray(self.packet.toByteArray())
 
-		print "Received:", p
+		# print "Received:", p
 		self.packet = None
 		
 		self.packetAvail.release()
@@ -453,8 +453,8 @@ class PacketStream(Thread):
 
 				t = t - 1
 
-				print e
-				print "xfer failed - trys left: ", t
+				# print e
+				# print "xfer failed - trys left: ", t
 
 				if t < 0:
 					self.xferLock.release()
@@ -504,7 +504,7 @@ class PacketStream(Thread):
 
 				# read rest of data
 				s = self.stream.read(p.length - 2)
-				print "data:", `s`
+				# print "data:", `s`
 
  				# timed out ...
 				if not len(s) == p.length - 2:
