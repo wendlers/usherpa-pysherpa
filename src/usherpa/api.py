@@ -339,7 +339,7 @@ class uSherpa:
 			raise uSherpaException(e.__str__())
 
 		if not ret.ptype == checkType:
-			print ret
+			# print ret
 			raise uSherpaException("Wrong packet type. Expected " + 
 				`checkType` + " and received " + `ret.ptype`)
 
