@@ -346,6 +346,8 @@ class PacketStream(Thread):
 	def start(self):
 		''' Start the receiver thread. '''
 
+		self.daemon = True
+
 		Thread.start(self)
 
 		while not self.running:
