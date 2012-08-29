@@ -308,6 +308,13 @@ class uSherpa:
 	
 		self.packetStream = packetStream
 
+		# check if version matches
+   		inf = self.systemInfo()
+
+		if inf["firmware_rev"] != 0x01:
+			raise uSherpaException("Firmware version mismatch: expected 0x01, and got %x" % 
+				inf["firmware_rev"])
+
 	def __xferAndCheckType(self, ptype, data, checkType):
 		'''
 		Send data to MCU, receive response. ptype is the packet type to send,
