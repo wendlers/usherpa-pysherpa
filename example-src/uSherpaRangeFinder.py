@@ -49,7 +49,7 @@ try:
 	prevPl = 10000 
 
 	while True:
-		pl = us.pulselengthRead(uSherpa.PIN_2_0, True); 
+		pl = us.pulselengthRead(uSherpa.PIN_2_0, True) 
 		if pl - prevPl > 2 or prevPl - pl > 2:
 			prevPl = pl
 			plCm = pl * 2 / 10

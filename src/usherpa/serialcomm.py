@@ -30,12 +30,12 @@ from usherpa.comm import *
 class SerialPacketStream(PacketStream):
 	''' A packet stream operating on the serial line '''
 	
-	def __init__(self, port = "/dev/ttyACM0", speed = 19200):
+	def __init__(self, port = "/dev/ttyACM0", speed = 9600):
 		''' 
 		Constructor for packet stream over serial line. 
 
 		@param	port	(optional) serial port, default is '/dev/ttyACM0'
-		@param	speed	(optional) speed for serial port, default is 19200 bauds
+		@param	speed	(optional) speed for serial port, default is 9600 bauds
 		'''
 
 		serStream = serial.Serial()
