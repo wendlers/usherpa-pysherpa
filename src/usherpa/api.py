@@ -538,7 +538,7 @@ class uSherpa:
 
 		self.__xferAndCheckAck(self.PACKET_OUT_RESET, None)
 
-	def externalInterrupt(self, pin, mode, triggerCount = 1): 
+	def externalInterrupt(self, pin, mode, triggerCount = 0): 
 		'''
 		Enabled / disables external interrupts for a given pin. 
 		Interrupting is disabled if mode is set to EDGE_NONE, 
