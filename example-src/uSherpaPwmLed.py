@@ -80,7 +80,7 @@ try:
 
 	# reset MCU 
   	print "RESET: "  
-us.reset()
+	us.reset()
 	print "-> OK"
 
 except Exception as e:
